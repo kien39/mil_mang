@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import AttendanceList from "@/components/attendance-list"
 import DetailProfile from "@/components/detail-profile"
 import TaskCreationDialog from "@/components/task-creation-dialog"
+import { exportAttendanceToExcel } from "@/lib/export-excel"
 import type { PersonData, AttendanceRecord } from "@/types"
 
 export default function Home() {
@@ -123,6 +124,21 @@ export default function Home() {
     setSelectedPerson(null)
   }
 
+  const handleExport = async () => {
+    try {
+      const result = await exportAttendanceToExcel(attendanceData)
+      if (result.success) {
+        console.log(`[Export] File exported successfully: ${result.filename}`)
+      } else {
+        console.error("[Export] Export failed:", result.error)
+        alert("Lỗi khi xuất file Excel: " + result.error)
+      }
+    } catch (error) {
+      console.error("[Export] Unexpected error:", error)
+      alert("Lỗi khi xuất file Excel. Vui lòng thử lại.")
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -157,6 +173,7 @@ export default function Home() {
             onSave={handleSaveAttendance}
             saveStatus={saveStatus}
             onCreateTask={() => setTaskDialogOpen(true)}
+            onExport={handleExport}
           />
           <TaskCreationDialog
             open={taskDialogOpen}

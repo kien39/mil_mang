@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { BarChart3, Users, ChevronLeft, ChevronRight, Save, Check, Plus } from "lucide-react"
+import { BarChart3, Users, ChevronLeft, ChevronRight, Save, Check, Plus, FileDown, Shield, Award, Clock, FileText } from "lucide-react"
 import type { PersonData } from "@/types"
 
 interface AttendanceListProps {
@@ -19,6 +19,7 @@ interface AttendanceListProps {
   onSave: () => void
   saveStatus: "idle" | "saving" | "saved"
   onCreateTask: () => void
+  onExport: () => void
 }
 
 const UNIT_CATEGORIES = [
@@ -38,6 +39,7 @@ export default function AttendanceList({
   onSave,
   saveStatus,
   onCreateTask,
+  onExport,
 }: AttendanceListProps) {
   const [currentPage, setCurrentPage] = useState(0)
   const [activeTab, setActiveTab] = useState("c-bo")
@@ -61,6 +63,29 @@ export default function AttendanceList({
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Top Icons Row */}
+        <div className="flex items-center justify-center gap-4 md:gap-6 py-4 border-b border-border">
+          <div className="flex items-center gap-2 text-primary">
+            <Shield className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-sm md:text-base font-medium">Quản lý</span>
+          </div>
+          <div className="w-px h-8 bg-border"></div>
+          <div className="flex items-center gap-2 text-primary">
+            <Clock className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-sm md:text-base font-medium">Điểm danh</span>
+          </div>
+          <div className="w-px h-8 bg-border"></div>
+          <div className="flex items-center gap-2 text-primary">
+            <Award className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-sm md:text-base font-medium">Báo cáo</span>
+          </div>
+          <div className="w-px h-8 bg-border"></div>
+          <div className="flex items-center gap-2 text-primary">
+            <FileText className="w-6 h-6 md:w-8 md:h-8" />
+            <span className="text-sm md:text-base font-medium">Thống kê</span>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="space-y-2">
           <div className="flex items-center gap-3 mb-2">
@@ -75,6 +100,10 @@ export default function AttendanceList({
           <Button onClick={onCreateTask} variant="outline">
             <Plus className="w-4 h-4 mr-2" />
             Lập công việc
+          </Button>
+          <Button onClick={onExport} variant="outline">
+            <FileDown className="w-4 h-4 mr-2" />
+            Xuất Excel
           </Button>
           <Button
             onClick={onSave}

@@ -3,32 +3,77 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================
+   🎨 THEME COLORS - CUSTOMIZE YOUR COLORS HERE
+   ============================================
+   Format: oklch(lightness chroma hue)
+   - Lightness: 0-1 (0=black, 1=white)
+   - Chroma: 0-0.4 (0=gray, higher=more saturated)
+   - Hue: 0-360 (degrees on color wheel)
+   
+   Color Guide:
+   - Primary: Main brand/action color (currently teal/green)
+   - Secondary: Secondary elements (currently gray)
+   - Background: Page background
+   - Foreground: Main text color
+   - Card: Card background
+   - Accent: Highlight color
+   - Destructive: Error/danger color (currently red)
+   ============================================ */
 :root {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.22 0 0);
-  --card-foreground: oklch(0.95 0 0);
+  /* 🌑 Background Colors */
+  --background: oklch(0.145 0 0);              /* Dark background */
+  --foreground: oklch(0.95 0 0);               /* Light text */
+  --card: oklch(0.22 0 0);                     /* Card background */
+  --card-foreground: oklch(0.95 0 0);          /* Card text */
+  
+  /* 📦 Popover/Dropdown */
   --popover: oklch(0.145 0 0);
   --popover-foreground: oklch(0.95 0 0);
+  
+  /* 🎯 Primary Color - Change this for main brand color */
+  /* Current: oklch(0.42 0.155 162.48) = Teal/Green */
+  /* Examples:
+     Blue: oklch(0.45 0.15 250)
+     Red: oklch(0.55 0.22 25)
+     Purple: oklch(0.45 0.15 300)
+     Orange: oklch(0.6 0.18 60)
+  */
   --primary: oklch(0.42 0.155 162.48);
   --primary-foreground: oklch(0.95 0 0);
+  
+  /* 🔘 Secondary Color - Change for secondary elements */
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.95 0 0);
+  
+  /* 💬 Muted Colors - Subtle text/elements */
   --muted: oklch(0.35 0 0);
   --muted-foreground: oklch(0.65 0 0);
+  
+  /* ✨ Accent Color - Highlights */
   --accent: oklch(0.42 0.155 162.48);
   --accent-foreground: oklch(0.95 0 0);
+  
+  /* ⚠️ Destructive/Error Color */
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.95 0 0);
+  
+  /* 🔲 Borders and Inputs */
   --border: oklch(0.269 0 0);
   --input: oklch(0.22 0 0);
   --ring: oklch(0.42 0.155 162.48);
+  
+  /* 📊 Chart Colors */
   --chart-1: oklch(0.42 0.155 162.48);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  
+  /* 📐 Border Radius */
   --radius: 0.625rem;
+  
+  /* 📑 Sidebar Colors */
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-primary: oklch(0.42 0.155 162.48);
@@ -39,6 +84,12 @@
   --sidebar-ring: oklch(0.42 0.155 162.48);
 }
 
+/* ============================================
+   🌙 DARK MODE COLORS (when .dark class is applied)
+   ============================================
+   Update these to match your light theme or create
+   a different dark theme color scheme
+   ============================================ */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.95 0 0);
