@@ -14,3 +14,13 @@ export interface AttendanceRecord {
   present: boolean
   reason: string
 }
+
+export interface Task {
+  id: string
+  name: string
+  location: string
+  selectedTT: number[]
+  createdAt: string
+  status: "progressing" | "done"
+  completedAt?: string
+}

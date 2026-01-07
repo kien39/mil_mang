@@ -15,14 +15,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { PersonData } from "@/types"
 
-const UNIT_CATEGORIES = [
-  { id: "c-bo", name: "C bộ", codes: ["c2"] },
-  { id: "trung-doi-4", name: "Trung đội 4", codes: ["a1", "a2", "a3"] },
-  { id: "trung-doi-5", name: "Trung đội 5", codes: ["a4", "a5", "a6"] },
-  { id: "trung-doi-6", name: "Trung đội 6", codes: ["a7", "a8", "a9"] },
-  { id: "trung-doi-hl", name: "Trung đội HL", codes: ["a10", "a11", "a12"] },
-]
-
 interface TaskCreationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -43,7 +35,43 @@ export default function TaskCreationDialog({
   const [taskName, setTaskName] = useState("")
   const [location, setLocation] = useState("")
   const [selectedPeople, setSelectedPeople] = useState<Set<number>>(new Set())
-  const [activeTab, setActiveTab] = useState("c-bo")
+  const UNIT_CATEGORIES = [
+    { id: "c-bo", name: "C bộ", codes: ["c2"] },
+    { id: "trung-doi-4", name: "Trung đội 4", codes: ["a1", "a2", "a3"] },
+    { id: "trung-doi-5", name: "Trung đội 5", codes: ["a4", "a5", "a6"] },
+    { id: "trung-doi-6", name: "Trung đội 6", codes: ["a7", "a8", "a9"] },
+    { id: "trung-doi-hl", name: "Trung đội HL", codes: ["a10", "a11", "a12"] },
+  ]
+
+  const getUnitName = (p: PersonData) => {
+    const unitField = p["Đơn vị"] || ""
+    const cat = UNIT_CATEGORIES.find((c) => c.codes.some((code) => unitField?.includes(code)))
+    return cat ? cat.name : "Khác"
+  }
+
+  // Group personnel by unit
+  const groupedPersonnel: Record<string, PersonData[]> = {}
+  UNIT_CATEGORIES.forEach((c) => (groupedPersonnel[c.name] = []))
+  groupedPersonnel["Khác"] = []
+  allPersonnel.forEach((p) => {
+    const unit = getUnitName(p)
+    if (!groupedPersonnel[unit]) groupedPersonnel[unit] = []
+    groupedPersonnel[unit].push(p)
+  })
+
+  const toggleSelectGroup = (unitName: string) => {
+    setSelectedPeople((prev) => {
+      const next = new Set(prev)
+      const members = groupedPersonnel[unitName] || []
+      const allSelected = members.every((m) => next.has(m.TT))
+      if (allSelected) {
+        members.forEach((m) => next.delete(m.TT))
+      } else {
+        members.forEach((m) => next.add(m.TT))
+      }
+      return next
+    })
+  }
 
   const handlePersonToggle = (tt: number) => {
     setSelectedPeople((prev) => {
@@ -63,25 +91,7 @@ export default function TaskCreationDialog({
     setTaskName("")
     setLocation("")
     setSelectedPeople(new Set())
-    setActiveTab("c-bo")
     onOpenChange(false)
-  }
-
-  // Filter personnel by active category
-  const filteredData = allPersonnel.filter((person) => {
-    const activeCategory = UNIT_CATEGORIES.find((cat) => cat.id === activeTab)
-    return activeCategory?.codes.some((code) => person["Đơn vị"]?.includes(code))
-  })
-
-  // Count selected people by category
-  const getCategoryCount = (categoryId: string) => {
-    const category = UNIT_CATEGORIES.find((cat) => cat.id === categoryId)
-    if (!category) return 0
-    return allPersonnel.filter(
-      (person) =>
-        selectedPeople.has(person.TT) &&
-        category.codes.some((code) => person["Đơn vị"]?.includes(code))
-    ).length
   }
 
   return (
@@ -117,62 +127,47 @@ export default function TaskCreationDialog({
 
       {/* 👇 THIS IS THE ONLY SCROLLABLE AREA */}
       <div className="flex flex-col flex-1 min-h-0">
-        <div className="mb-2 shrink-0">
-          <Label>
-            Chọn những người đi làm ({selectedPeople.size} người)
-          </Label>
-        </div>
-
-        {/* Category Tabs */}
-        <div className="flex flex-wrap gap-2 mb-3 shrink-0 border-b border-border pb-2">
-          {UNIT_CATEGORIES.map((category) => {
-            const count = getCategoryCount(category.id)
-            return (
-              <button
-                key={category.id}
-                onClick={() => setActiveTab(category.id)}
-                className={`px-3 py-1.5 rounded-t-lg transition-colors text-sm font-medium ${
-                  activeTab === category.id
-                    ? "bg-primary text-primary-foreground border-b-2 border-primary"
-                    : "bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
-                }`}
-              >
-                {category.name}
-                {count > 0 && (
-                  <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-primary/20 text-xs">
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+        <Label className="mb-2 shrink-0">
+          Chọn những người đi làm ({selectedPeople.size} người)
+        </Label>
 
         <ScrollArea className="flex-1 min-h-0 rounded-lg border p-3">
-          <div className="space-y-3">
-            {filteredData.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8 text-sm">
-                Không có người trong đơn vị này
-              </div>
-            ) : (
-              filteredData.map((person) => (
-                <div
-                  key={person.TT}
-                  className="flex items-center gap-3 pr-4"
-                >
-                  <Checkbox
-                    checked={selectedPeople.has(person.TT)}
-                    onCheckedChange={() => handlePersonToggle(person.TT)}
-                  />
-                  <span className="flex-1 truncate text-sm font-medium">
-                    {person["Họ và tên"]}
-                  </span>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {person["Chức vụ"]}
-                  </span>
+          <div className="space-y-4">
+            {Object.keys(groupedPersonnel).map((unitName) => {
+              const members = groupedPersonnel[unitName]
+              if (!members || members.length === 0) return null
+              const allSelected = members.every((m) => selectedPeople.has(m.TT))
+              return (
+                <div key={unitName} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectGroup(unitName)}
+                        className="text-sm font-medium underline text-primary"
+                      >
+                        {allSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                      </button>
+                      <div className="text-sm font-semibold">{unitName}</div>
+                      <div className="text-xs text-muted-foreground">({members.length})</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pl-4">
+                    {members.map((person) => (
+                      <div key={person.TT} className="flex items-center gap-3 pr-4">
+                        <Checkbox
+                          checked={selectedPeople.has(person.TT)}
+                          onCheckedChange={() => handlePersonToggle(person.TT)}
+                        />
+                        <span className="flex-1 truncate text-sm font-medium">{person["Họ và tên"]}</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{person["Chức vụ"]}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))
-            )}
+              )
+            })}
           </div>
         </ScrollArea>
       </div>

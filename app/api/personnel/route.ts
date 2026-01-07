@@ -6,51 +6,21 @@ import { join } from "path"
 const EXCEL_FILE_PATH = join(process.cwd(), "data", "detail.xlsx")
 
 function formatExcelDate(value: any): string | number | boolean {
-  // If value is already a Date object (XLSX might convert it)
-  if (value instanceof Date) {
-    // Use UTC methods to avoid timezone shifts
-    const day = String(value.getUTCDate()).padStart(2, "0")
-    const month = String(value.getUTCMonth() + 1).padStart(2, "0")
-    const year = value.getUTCFullYear()
-    return `${day}/${month}/${year}`
-  }
-
   if (typeof value === "string") {
     // If it looks like a date string already (dd/mm/yyyy), return as-is
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
       return value
     }
-    // Try to parse other date formats
-    const dateMatch = value.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/)
-    if (dateMatch) {
-      const [, day, month, year] = dateMatch
-      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`
-    }
   }
 
-  if (typeof value === "number" && value >= 1 && value < 50000) {
-    // Excel serial date: Excel uses January 1, 1900 as day 1
-    // To avoid timezone issues, calculate using UTC methods
-    // Excel epoch: December 30, 1899 (Excel incorrectly treats 1900 as leap year)
-    
-    // Excel serial dates start at 1 for Jan 1, 1900
-    // We need to account for Excel's leap year bug (1900 is treated as leap year)
-    // So day 60 = Feb 29, 1900 (which didn't actually exist)
-    // Day 61 = Mar 1, 1900
-    
-    // Most reliable method: Use UTC to avoid any timezone shifts
-    // Excel's epoch in UTC: 1899-12-30 00:00:00 UTC
-    const excelEpochUTC = Date.UTC(1899, 11, 30) // Dec 30, 1899 in UTC (month 11 = December)
-    const daysSinceEpoch = value - 1 // Excel day 1 = Jan 1, 1900, so subtract 1
-    const milliseconds = excelEpochUTC + daysSinceEpoch * 24 * 60 * 60 * 1000
-    
-    // Create date and use UTC methods to extract components
-    const date = new Date(milliseconds)
-    
-    // Use UTC methods to avoid timezone shifts
-    const day = String(date.getUTCDate()).padStart(2, "0")
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0")
-    const year = date.getUTCFullYear()
+  if (typeof value === "number" && value >= 100 && value < 60000) {
+    // Excel epoch is December 30, 1899
+    const excelEpoch = new Date(1899, 11, 30)
+    const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000)
+
+    const day = String(date.getDate()).padStart(2, "0")
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const year = date.getFullYear()
 
     return `${day}/${month}/${year}`
   }
@@ -75,9 +45,7 @@ async function readExcelFile() {
     console.log("[v0] Reading from sheet:", sheetName)
 
     const worksheet = workbook.Sheets[sheetName]
-    // Use raw: false to get formatted dates, but we'll still process them manually
-    // to ensure consistent formatting without timezone issues
-    const data = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: null })
+    const data = XLSX.utils.sheet_to_json(worksheet)
 
     console.log("[v0] Excel data loaded successfully:", data.length, "rows")
 

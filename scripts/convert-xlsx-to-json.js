@@ -25,10 +25,27 @@ function convertExcelToJson() {
 
     console.log(`[v0] Read ${data.length} rows from Excel`)
 
-    // Add attendance field if missing
+    // Map Đơn vị codes to unit groups
+    const UNIT_CATEGORIES = [
+      { id: "c-bo", name: "C bộ", codes: ["c2"] },
+      { id: "trung-doi-4", name: "Trung đội 4", codes: ["a1", "a2", "a3"] },
+      { id: "trung-doi-5", name: "Trung đội 5", codes: ["a4", "a5", "a6"] },
+      { id: "trung-doi-6", name: "Trung đội 6", codes: ["a7", "a8", "a9"] },
+      { id: "trung-doi-hl", name: "Trung đội HL", codes: ["a10", "a11", "a12"] },
+    ]
+
+    function normalizeUnit(unitField) {
+      if (!unitField) return "Khác"
+      const s = String(unitField).toLowerCase()
+      const cat = UNIT_CATEGORIES.find((c) => c.codes.some((code) => s.includes(code)))
+      return cat ? cat.name : "Khác"
+    }
+
+    // Add attendance field if missing and normalized unit
     const processedData = data.map((row) => ({
       ...row,
       "Điểm danh": row["Điểm danh"] !== undefined ? row["Điểm danh"] : false,
+      "Đơn vị nhóm": normalizeUnit(row["Đơn vị"]),
     }))
 
     // Write to JSON
