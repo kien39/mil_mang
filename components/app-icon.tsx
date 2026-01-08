@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Save, Users, Plus, Eye } from "lucide-react"
+import { Save, Users, Plus, Eye, Brain } from "lucide-react"
 
 export default function AppIcon() {
   const [open, setOpen] = useState(false)
@@ -96,6 +96,20 @@ export default function AppIcon() {
           >
             <Users className="w-4 h-4" />
             Xuất lịch sử công việc
+          </button>
+          <button
+            className="w-full text-left px-3 py-2 hover:bg-secondary/20 rounded flex items-center gap-2"
+            onClick={() => emit("thought:survey")}
+          >
+            <Brain className="w-4 h-4" />
+            Khảo sát tư tưởng
+          </button>
+          <button
+            className="w-full text-left px-3 py-2 hover:bg-secondary/20 rounded flex items-center gap-2"
+            onClick={() => emit("thought:export")}
+          >
+            <Users className="w-4 h-4" />
+            Xuất kết quả tư tưởng
           </button>
         </div>
       )}

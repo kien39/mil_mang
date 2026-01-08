@@ -1,15 +1,23 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useUser } from "@/lib/user-context"
+import { useSurvey } from "@/lib/survey-context"
 import AttendanceList from "@/components/attendance-list"
 import DetailProfile from "@/components/detail-profile"
 import TaskCreationDialog from "@/components/task-creation-dialog"
 import TaskListDialog from "@/components/task-list-dialog"
 import TaskHistoryDialog from "@/components/task-history-dialog"
-import type { PersonData, AttendanceRecord, Task } from "@/types"
+import ThoughtSurveyDialog from "@/components/thought-survey-dialog"
+import { SurveyControlPanel } from "@/components/survey-control-panel"
+import { Button } from "@/components/ui/button"
+import type { PersonData, AttendanceRecord, Task, ThoughtEvaluation } from "@/types"
 
 export default function Home() {
+  const { role, logout } = useUser()
+  const { surveyEnabled, setSurveyEnabled, surveyLink } = useSurvey()
   const [attendanceData, setAttendanceData] = useState<PersonData[]>([])
+  const attendanceDataRef = useRef<PersonData[]>([])
   const [selectedPerson, setSelectedPerson] = useState<PersonData | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -19,6 +27,9 @@ export default function Home() {
   const [taskListOpen, setTaskListOpen] = useState(false)
   const [taskHistoryOpen, setTaskHistoryOpen] = useState(false)
   const [tasks, setTasks] = useState<Task[]>([])
+  const [thoughtSurveyOpen, setThoughtSurveyOpen] = useState(false)
+  const [selectedPersonForThought, setSelectedPersonForThought] = useState<PersonData | null>(null)
+  const [thoughtEvaluations, setThoughtEvaluations] = useState<ThoughtEvaluation[]>([])
 
   useEffect(() => {
     async function loadData() {
@@ -41,13 +52,18 @@ export default function Home() {
               _reason: recordMap[person.TT]?.reason ?? "",
             }))
             setAttendanceData(mergedData)
+            attendanceDataRef.current = mergedData
           } catch (err) {
             console.error("[v0] Error parsing saved records:", err)
-            setAttendanceData(data.map((p: PersonData) => ({ ...p, _present: false, _reason: "" })))
+            const defaultData = data.map((p: PersonData) => ({ ...p, _present: false, _reason: "" }))
+            setAttendanceData(defaultData)
+            attendanceDataRef.current = defaultData
           }
         } else {
           console.log("[v0] No saved records, loading default Excel data")
-          setAttendanceData(data.map((p: PersonData) => ({ ...p, _present: false, _reason: "" })))
+          const defaultData = data.map((p: PersonData) => ({ ...p, _present: false, _reason: "" }))
+          setAttendanceData(defaultData)
+          attendanceDataRef.current = defaultData
         }
 
         setError(null)
@@ -61,22 +77,86 @@ export default function Home() {
 
     loadData()
 
+    // Load thought evaluations from localStorage
+    const loadThoughtEvaluations = () => {
+      const saved = localStorage.getItem("thought_evaluations")
+      console.log("[Manager] Loading thought evaluations:", saved)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          console.log("[Manager] Parsed evaluations:", parsed)
+          setThoughtEvaluations(parsed)
+        } catch (err) {
+          console.error("Error loading thought evaluations:", err)
+        }
+      }
+    }
+    loadThoughtEvaluations()
+
+    // Listen for storage changes (when survey page updates localStorage)
+    const handleStorageChange = (e: StorageEvent) => {
+      console.log("[Manager] Storage event:", e.key, e.newValue)
+      if (e.key === "thought_evaluations") {
+        loadThoughtEvaluations()
+      }
+    }
+    window.addEventListener("storage", handleStorageChange)
+
+    // Also listen for custom events from survey page
+    const handleSurveyUpdate = () => {
+      console.log("[Manager] Survey update event received")
+      loadThoughtEvaluations()
+    }
+    window.addEventListener("survey:updated", handleSurveyUpdate)
+
+    // Polling as fallback - check localStorage every 2 seconds
+    let lastValue = localStorage.getItem("thought_evaluations")
+    const pollInterval = setInterval(() => {
+      const currentValue = localStorage.getItem("thought_evaluations")
+      if (currentValue !== lastValue) {
+        console.log("[Manager] Detected localStorage change via polling")
+        loadThoughtEvaluations()
+        lastValue = currentValue
+      }
+    }, 2000)
+
     // Listen for app-level events
     const onSave = () => handleSaveAttendance()
     const onTaskOpen = () => setTaskDialogOpen(true)
     const onTaskView = () => setTaskListOpen(true)
     const onExportTasks = () => setTaskHistoryOpen(true)
+    const onThoughtSurvey = () => {
+      const data = attendanceDataRef.current
+      if (data.length > 0) {
+        const randomPerson = data[Math.floor(Math.random() * data.length)]
+        setSelectedPersonForThought(randomPerson)
+        setThoughtSurveyOpen(true)
+      }
+    }
+    const onThoughtExport = () => exportThoughtResults()
     window.addEventListener("attendance:save", onSave)
     window.addEventListener("task:open", onTaskOpen)
     window.addEventListener("task:view", onTaskView)
     window.addEventListener("tasks:export", onExportTasks)
+    window.addEventListener("thought:survey", onThoughtSurvey)
+    window.addEventListener("thought:export", onThoughtExport)
     return () => {
       window.removeEventListener("attendance:save", onSave)
       window.removeEventListener("task:open", onTaskOpen)
       window.removeEventListener("task:view", onTaskView)
       window.removeEventListener("tasks:export", onExportTasks)
+      window.removeEventListener("thought:survey", onThoughtSurvey)
+      window.removeEventListener("thought:export", onThoughtExport)
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("survey:updated", handleSurveyUpdate)
+      clearInterval(pollInterval)
     }
   }, [])
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    attendanceDataRef.current = attendanceData
+  }, [attendanceData])
 
   const stats = {
     total: attendanceData.length,
@@ -221,6 +301,45 @@ export default function Home() {
     setSelectedPerson(null)
   }
 
+  const handleThoughtSurveySubmit = (evaluation: ThoughtEvaluation) => {
+    setThoughtEvaluations((prev) => {
+      const filtered = prev.filter((e) => e.tt !== evaluation.tt)
+      const updated = [evaluation, ...filtered]
+      try {
+        localStorage.setItem("thought_evaluations", JSON.stringify(updated))
+      } catch (err) {
+        console.error("Failed to persist thought evaluations", err)
+      }
+      return updated
+    })
+  }
+
+  const exportThoughtResults = async () => {
+    try {
+      const rows = thoughtEvaluations.map((evaluation) => ({
+        "TT": evaluation.tt,
+        "Họ và tên": evaluation.name,
+        "Trạng thái": evaluation.levelLabel,
+        "Ngày khảo sát": new Date(evaluation.evaluatedAt).toLocaleString("vi-VN"),
+      }))
+
+      if (rows.length === 0) {
+        alert("Chưa có kết quả khảo sát")
+        return
+      }
+
+      const XLSX = await import("xlsx")
+      const sheet = XLSX.utils.json_to_sheet(rows)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, sheet, "Khảo sát")
+      
+      const filename = `thought_survey_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`
+      XLSX.writeFile(workbook, filename)
+    } catch (err) {
+      console.error("Failed to export thought results:", err)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -244,6 +363,18 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-background">
+      {/* Manager Logout Button */}
+      {role === "manager" && (
+        <div className="fixed top-4 left-4 z-40">
+          <Button variant="outline" size="sm" onClick={logout}>
+            Đăng xuất
+          </Button>
+        </div>
+      )}
+
+      {/* Survey Control Panel for Manager */}
+      {role === "manager" && <SurveyControlPanel surveyEnabled={surveyEnabled} setSurveyEnabled={setSurveyEnabled} surveyLink={surveyLink} />}
+
       {!showDetail ? (
         <>
           <AttendanceList
@@ -277,9 +408,16 @@ export default function Home() {
             allPersonnel={attendanceData}
             onDeleteTask={handleDeleteTask}
           />
+          <ThoughtSurveyDialog
+            open={thoughtSurveyOpen}
+            onOpenChange={setThoughtSurveyOpen}
+            person={selectedPersonForThought}
+            onSave={handleThoughtSurveySubmit}
+            allPersonnel={attendanceData}
+          />
         </>
       ) : (
-        <DetailProfile person={selectedPerson} onBack={handleBack} />
+        <DetailProfile person={selectedPerson} onBack={handleBack} thoughtEvaluations={thoughtEvaluations} />
       )}
     </div>
   )

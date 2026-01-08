@@ -4,6 +4,9 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import AppIcon from "@/components/app-icon"
+import { UserProvider } from "@/lib/user-context"
+import { SurveyProvider } from "@/lib/survey-context"
+import ClientLayoutWrapper from "@/components/client-layout-wrapper"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -39,11 +42,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        {/* Replaceable app icon component (client) */}
-        <AppIcon />
-        {children}
+        <UserProvider>
+          <SurveyProvider>
+            <ClientLayoutWrapper>
+              {/* Replaceable app icon component (client) */}
+              <AppIcon />
+              {children}
+            </ClientLayoutWrapper>
+          </SurveyProvider>
+        </UserProvider>
         <Analytics />
       </body>
     </html>
   )
 }
+

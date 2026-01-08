@@ -3,16 +3,18 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
-import type { PersonData } from "@/types"
+import type { PersonData, ThoughtEvaluation } from "@/types"
 
 interface DetailProfileProps {
   person: PersonData | null
   onBack: () => void
+  thoughtEvaluations?: ThoughtEvaluation[]
 }
 
-export default function DetailProfile({ person, onBack }: DetailProfileProps) {
+export default function DetailProfile({ person, onBack, thoughtEvaluations = [] }: DetailProfileProps) {
   if (!person) return null
 
+  const personThought = thoughtEvaluations.find((e) => e.tt === person.TT)
   const displayFields = ["TT", "Họ và tên", "Chức vụ", "Ngày sinh", "Quê quán", "Email", "Điện thoại", "Điểm danh", "Sức khỏe", "Tư tưởng"]
 
   return (
@@ -48,6 +50,36 @@ export default function DetailProfile({ person, onBack }: DetailProfileProps) {
                           <span className={`w-2 h-2 rounded-full ${person[field] ? "bg-green-500" : "bg-red-500"}`} />
                           {person[field] ? "Có mặt" : "Vắng"}
                         </span>
+                      ) : field === "Tư tưởng" ? (
+                        personThought ? (
+                          <div className="space-y-2">
+                            <span
+                              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                                personThought.level === "an-tam-cong-tac"
+                                  ? "bg-green-500/20 text-green-600"
+                                  : personThought.level === "can-tu-van"
+                                    ? "bg-yellow-500/20 text-yellow-600"
+                                    : "bg-red-500/20 text-red-600"
+                              }`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  personThought.level === "an-tam-cong-tac"
+                                    ? "bg-green-600"
+                                    : personThought.level === "can-tu-van"
+                                      ? "bg-yellow-600"
+                                      : "bg-red-600"
+                                }`}
+                              />
+                              {personThought.levelLabel}
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              Điểm: {personThought.totalScore}/{personThought.maxScore} — Cập nhật: {new Date(personThought.evaluatedAt).toLocaleString("vi-VN")}
+                            </p>
+                          </div>
+                        ) : (
+                          "—"
+                        )
                       ) : (
                         person[field] || "—"
                       )}
